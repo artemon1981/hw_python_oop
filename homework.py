@@ -11,7 +11,7 @@ class InfoMessage:
     distance: float
     speed: float
     calories: float
-    INFO = (
+    info = (
         "Тип тренировки: {}; "
         "Длительность: {:.3f} ч.; "
         "Дистанция: {:.3f} км; "
@@ -20,8 +20,7 @@ class InfoMessage:
     )
 
     def get_message(self) -> None:
-        in_dict = asdict(self)
-        return self.INFO.format(*in_dict.values())
+        return self.info.format(*asdict(self).values())
 
 
 class Training:
@@ -67,7 +66,7 @@ class Running(Training):
 
     def get_spent_calories(self) -> float:
         return ((self.CALORIES_MEAN_SPEED_MULTIPLIER
-                 * Training.get_mean_speed(self)
+                 * self.get_mean_speed()
                  + self.CALORIES_MEAN_SPEED_SHIFT
                  )
                 * self.weight / self.M_IN_KM
@@ -78,7 +77,7 @@ class Running(Training):
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
     CALORIES_MEAN_WEIGHT_MULTIPLIER: float = 0.035
-    CALORIES_MEAN_WEIGHT_MULTIPLIER_SECOND: float = 0.029
+    CALORIES_MEAN_WEIGHT_MULTIPLIER_DURATION: float = 0.029
     KMH_MS: float = 0.278
     H_M: int = 100
 
@@ -91,9 +90,10 @@ class SportsWalking(Training):
 
     def get_spent_calories(self) -> float:
         return (((self.CALORIES_MEAN_WEIGHT_MULTIPLIER * self.weight
-                 + (((Training.get_mean_speed(self) * self.KMH_MS)**2)
+                 + (((self.get_mean_speed() * self.KMH_MS)**2)
                   / (self.height / self.H_M))
-                  * self.CALORIES_MEAN_WEIGHT_MULTIPLIER_SECOND * self.weight))
+                  * self.CALORIES_MEAN_WEIGHT_MULTIPLIER_DURATION
+                  * self.weight))
                 * self.MIN_IN_H * self.duration)
 
 
@@ -118,7 +118,7 @@ class Swimming(Training):
                 / self.M_IN_KM / self.duration)
 
     def get_spent_calories(self) -> float:
-        return ((Swimming.get_mean_speed(self) + self.CALORIES_SHIFT_SPEED)
+        return ((self.get_mean_speed() + self.CALORIES_SHIFT_SPEED)
                 * self.CALORIES_MULTI_WEIGHT
                 * self.weight * self.duration)
 
@@ -126,17 +126,18 @@ class Swimming(Training):
 def read_package(workout_type: str,
                  data: Union[list[int], list[float]]) -> Training:
     """Прочитать данные полученные от датчиков."""
-    dict_classes: dict[str, Type] = {'SWM': Swimming,
-                                     'RUN': Running,
-                                     'WLK': SportsWalking}
+    dict_classes: dict[str, Type[Training]] = {'SWM': Swimming,
+                                               'RUN': Running,
+                                               'WLK': SportsWalking}
     if workout_type not in dict_classes:
-        raise ValueError('Передан неверный идентификатор тренировки.')
+        raise ValueError('Передан неверный идентификатор'
+                         f' тренировки. {workout_type}')
     return dict_classes[workout_type](*data)
 
 
 def main(training: Training) -> None:
     """Главная функция."""
-    info: InfoMessage = Training.show_training_info(training)
+    info: InfoMessage = training.show_training_info()
     print(InfoMessage.get_message(info))
 
 
